@@ -13,5 +13,6 @@ export declare class Fragrant extends EventEmitter {
     remove(...flag_ids: string[]): boolean;
     clear(): boolean;
     catchStorage(): FragrantStroage[];
+    getFlag(flag: string): FragrantStroage | undefined;
     parse(): void;
 }

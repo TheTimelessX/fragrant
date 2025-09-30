@@ -68,6 +68,9 @@ export class Fragrant extends EventEmitter {
     catchStorage() {
         return this.stroage;
     }
+    getFlag(flag) {
+        return this.stroage.find(storage => storage.flag.startsWith(flag));
+    }
     parse() {
         let detected = false;
         for (let theStorage of this.stroage) {
@@ -77,30 +80,33 @@ export class Fragrant extends EventEmitter {
             }
             const arg = this.workingOn.find((thearg) => thearg.includes(neededflag));
             if (arg) {
-                if (theStorage.type == "call") {
-                    if (this.eventNames().includes("find")) {
-                        this.emit("find", { type: theStorage.type, value: true, id: theStorage.id });
-                        detected = true;
+                let theFlag = this.getFlag(arg);
+                if (theFlag) {
+                    if (theStorage.type == "call") {
+                        if (this.eventNames().includes("find")) {
+                            this.emit("find", { type: theStorage.type, value: true, id: theStorage.id });
+                            detected = true;
+                        }
                     }
-                }
-                else if (theStorage.type == "store") {
-                    if (this.eventNames().includes("find")) {
-                        if (arg.includes("=")) {
-                            const message = arg.split("=")[1];
+                    else if (theStorage.type == "store") {
+                        if (this.eventNames().includes("find")) {
+                            if (arg.includes("=")) {
+                                const message = arg.split("=")[1];
+                                this.emit("find", { type: theStorage.type, value: message, id: theStorage.id });
+                                detected = true;
+                            }
+                            else {
+                                this.emit("find", { type: theStorage.type, value: undefined, id: theStorage.id });
+                                detected = true;
+                            }
+                        }
+                    }
+                    else if (theStorage.type == "middle") {
+                        if (this.eventNames().includes("find")) {
+                            const message = this.workingOn[this.workingOn.indexOf(arg) + 1];
                             this.emit("find", { type: theStorage.type, value: message, id: theStorage.id });
                             detected = true;
                         }
-                        else {
-                            this.emit("find", { type: theStorage.type, value: undefined, id: theStorage.id });
-                            detected = true;
-                        }
-                    }
-                }
-                else if (theStorage.type == "middle") {
-                    if (this.eventNames().includes("find")) {
-                        const message = this.workingOn[this.workingOn.indexOf(arg) + 1];
-                        this.emit("find", { type: theStorage.type, value: message, id: theStorage.id });
-                        detected = true;
                     }
                 }
             }
