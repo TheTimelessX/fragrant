@@ -6,6 +6,10 @@ export class Fragrant extends EventEmitter {
         var _a, _b, _c;
         super();
         this.workingOn = (_a = opts.workingOn) !== null && _a !== void 0 ? _a : process.argv;
+        if (this.workingOn == process.argv) {
+            this.workingOn.splice(0, 1);
+            this.workingOn.splice(1, 1);
+        }
         this.stroage = [];
         this.usage = (_b = opts.usage) !== null && _b !== void 0 ? _b : "";
         this.sensitivity = (_c = opts.sensitivity) !== null && _c !== void 0 ? _c : "low";

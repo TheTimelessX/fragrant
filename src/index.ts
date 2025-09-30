@@ -14,6 +14,10 @@ export class Fragrant extends EventEmitter {
     constructor(opts: ConstructorOptions = { workingOn: process.argv }){
         super();
         this.workingOn = opts.workingOn ?? process.argv;
+        if (this.workingOn == process.argv){
+            this.workingOn.splice(0, 1);
+            this.workingOn.splice(1, 1);
+        }
         this.stroage = [];
         this.usage = opts.usage ?? "";
         this.sensitivity = opts.sensitivity ?? "low";
