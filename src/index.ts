@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import {
     ConstructorOptions, FragrantEvents,
     FragrantStroage, FragrantArguments,
-    InvalidFlagType, EmptyFlag, messageTypes } from "./options";
+    InvalidFlagType, EmptyFlag, messageTypes } from "./options.js";
 
 export class Fragrant extends EventEmitter {
     private workingOn: string[];

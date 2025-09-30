@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { ConstructorOptions, FragrantEvents, FragrantStroage, messageTypes } from "./options";
+import { ConstructorOptions, FragrantEvents, FragrantStroage, messageTypes } from "./options.js";
 export declare class Fragrant extends EventEmitter {
     private workingOn;
     private stroage;

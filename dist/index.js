@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
-import { InvalidFlagType, EmptyFlag } from "./options";
+import { InvalidFlagType, EmptyFlag } from "./options.js";
 export class Fragrant extends EventEmitter {
     constructor(opts = { workingOn: process.argv }) {
         var _a, _b, _c;
