@@ -113,9 +113,9 @@ export class Fragrant extends EventEmitter {
                 let theFlag = this.getFlag(arg);
                 if (theFlag){
                     if (theStorage.type == "call"){
+                        detected = true;
                         if (this.eventNames().includes("find")){
                             this.emit("find", { type: theStorage.type, value: true, id: theStorage.id });
-                            detected = true;
                         }
                     } else if (theStorage.type == "store"){
                         if (this.eventNames().includes("find")){
