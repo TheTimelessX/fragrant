@@ -9,7 +9,7 @@ export declare class Fragrant extends EventEmitter {
     on<K extends keyof FragrantEvents>(event: K, listener: FragrantEvents[K]): this;
     emit<K extends keyof FragrantEvents>(event: K, ...args: Parameters<FragrantEvents[K]>): boolean;
     getCurrentWorking(): string[];
-    add(type: messageTypes, ...flags: {
+    add(type: messageTypes, flags: {
         flag: string;
         kind?: kindTypes;
     }[]): FragrantStroage[];

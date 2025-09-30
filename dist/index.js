@@ -23,7 +23,7 @@ export class Fragrant extends EventEmitter {
     getCurrentWorking() {
         return this.workingOn;
     }
-    add(type, ...flags) {
+    add(type, flags) {
         var _a, _b;
         let appended = [];
         if (flags.length == 0) {

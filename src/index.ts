@@ -37,7 +37,7 @@ export class Fragrant extends EventEmitter {
 
     add(
         type: messageTypes,
-        ...flags: { flag: string, kind?: kindTypes }[]
+        flags: { flag: string, kind?: kindTypes }[]
     ): FragrantStroage[] {
 
         let appended: FragrantStroage[] = [];
