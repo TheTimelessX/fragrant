@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { ConstructorOptions, FragrantEvents, FragrantStroage, messageTypes } from "./options.js";
+import { ConstructorOptions, FragrantEvents, FragrantStroage, messageTypes, kindTypes } from "./options.js";
 export declare class Fragrant extends EventEmitter {
     private workingOn;
     private stroage;
@@ -9,9 +9,9 @@ export declare class Fragrant extends EventEmitter {
     on<K extends keyof FragrantEvents>(event: K, listener: FragrantEvents[K]): this;
     emit<K extends keyof FragrantEvents>(event: K, ...args: Parameters<FragrantEvents[K]>): boolean;
     getCurrentWorking(): string[];
-    add(type: messageTypes, flags: {
+    add(type: messageTypes, ...flags: {
         flag: string;
-        kind?: "literal" | "optional";
+        kind?: kindTypes;
     }[]): FragrantStroage[];
     remove(...flag_ids: string[]): boolean;
     clear(): boolean;

@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import {
     ConstructorOptions, FragrantEvents,
     FragrantStroage, FragrantArguments,
-    InvalidFlagType, EmptyFlag, messageTypes } from "./options.js";
+    InvalidFlagType, EmptyFlag, messageTypes, kindTypes } from "./options.js";
 
 export class Fragrant extends EventEmitter {
     private workingOn: string[];
@@ -37,35 +37,39 @@ export class Fragrant extends EventEmitter {
 
     add(
         type: messageTypes,
-        flags: { flag: string; kind?: "literal" | "optional" }[]
+        ...flags: { flag: string, kind?: kindTypes }[]
     ): FragrantStroage[] {
 
         let appended: FragrantStroage[] = [];
 
-        if (flags.length == 0) {
+        if (flags.length == 0){
             throw new EmptyFlag("flags list cannot be empty");
         }
 
-        for (let { flag, kind } of flags) {
-            if (!["call", "middle", "store"].includes(type)) {
+        for (let flag of flags){
+            if (!["call", "middle", "store"].includes(type)){
                 throw new InvalidFlagType("Invalid flag type - call / middle / store");
             }
 
-            if (!flag || flag.length == 0) {
+            if (!flag.flag || flag.flag.length == 0){
                 throw new EmptyFlag("flag cannot be empty");
             }
 
             let id = randomUUID();
 
-            let storage: FragrantStroage = {
-                flag,
+            this.stroage.push({
+                flag: flag.flag,
                 type,
-                id,
-                kind: kind ?? "literal" // default is literal
-            };
+                id: id,
+                kind: flag.kind ?? "literal"
+            });
 
-            this.stroage.push(storage);
-            appended.push(storage);
+            appended.push({
+                flag: flag.flag,
+                type,
+                id: id,
+                kind: flag.kind ?? "literal"
+            });
         }
 
         return appended;
@@ -99,83 +103,52 @@ export class Fragrant extends EventEmitter {
 
     parse(): void {
         let detected = false;
-
-        for (let theStorage of this.stroage) {
+        for (let theStorage of this.stroage){
             let neededflag = theStorage.flag;
-            if (theStorage.type === "store") {
+            if (theStorage.type == "store"){
                 neededflag = neededflag + "=";
             }
 
             const arg = this.workingOn.find((thearg) => thearg.startsWith(neededflag));
 
-            if (arg) {
+            if (arg){
                 detected = true;
-
-                if (theStorage.type === "call") {
-                    if (this.eventNames().includes("find")) {
-                        this.emit("find", {
-                            type: theStorage.type,
-                            value: true,
-                            id: theStorage.id,
-                        });
+                if (theStorage.type == "call"){
+                    if (this.eventNames().includes("find")){
+                        this.emit("find", { type: theStorage.type, value: true, id: theStorage.id });
                     }
-                } 
-                else if (theStorage.type === "store") {
-                    if (this.eventNames().includes("find")) {
-                        if (arg.includes("=")) {
+                } else if (theStorage.type == "store"){
+                    if (this.eventNames().includes("find")){
+                        if (arg.includes("=")){
                             const message = arg.split("=")[1];
-                            this.emit("find", {
-                                type: theStorage.type,
-                                value: message,
-                                id: theStorage.id,
-                            });
+                            this.emit("find", { type: theStorage.type, value: message, id: theStorage.id });
                         } else {
-                            this.emit("find", {
-                                type: theStorage.type,
-                                value: undefined,
-                                id: theStorage.id,
-                            });
+                            this.emit("find", { type: theStorage.type, value: undefined, id: theStorage.id });
                         }
                     }
-                } 
-                else if (theStorage.type === "middle") {
-                    if (this.eventNames().includes("find")) {
-                        const idx = this.workingOn.indexOf(arg);
-                        const message = this.workingOn[idx + 1];
-                        this.emit("find", {
-                            type: theStorage.type,
-                            value: message,
-                            id: theStorage.id,
-                        });
+                } else if (theStorage.type == "middle"){
+                    if (this.eventNames().includes("find")){
+                        const message = this.workingOn[this.workingOn.indexOf(arg) + 1];
+                        this.emit("find", { type: theStorage.type, value: message, id: theStorage.id });
                     }
                 }
-            } else {
-                if (theStorage.kind === "optional") {
-                    // emit undefined if optional
-                    if (this.eventNames().includes("find")) {
-                        this.emit("find", {
-                            type: theStorage.type,
-                            value: undefined,
-                            id: theStorage.id,
-                        });
-                    }
-                } else if (theStorage.kind === "literal") {
-                    if (this.eventNames().includes("err")) {
-                        this.emit("err", {
-                            message: `Required flag '${theStorage.flag}' is missing.`,
-                        });
-                    }
-                    if (this.sensitivity === "high") {
-                        console.log(this.usage);
-                        process.exit(1);
-                    }
+            } else if (theStorage.kind == "optional") {
+                if (this.eventNames().includes("find")){
+                    this.emit("find", { type: theStorage.type, value: undefined, id: theStorage.id });
+                }
+            } else if (theStorage.kind == "literal") {
+                if (this.eventNames().includes("err")){
+                    this.emit("err", { message: "literal flag didnt find" });
                 }
             }
         }
-
-        if (!detected && this.sensitivity === "high") {
-            console.log(this.usage);
-            process.exit(0);
+        
+        if (detected == false){
+            if (this.sensitivity == "high"){
+                console.log(this.usage);
+                process.exit(0);
+            }
         }
     }
+
 }
