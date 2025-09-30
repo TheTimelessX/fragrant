@@ -78,7 +78,7 @@ export class Fragrant extends EventEmitter {
             if (theStorage.type == "store") {
                 neededflag = neededflag + "=";
             }
-            const arg = this.workingOn.find((thearg) => thearg.includes(neededflag));
+            const arg = this.workingOn.find((thearg) => thearg.startsWith(neededflag));
             if (arg) {
                 let theFlag = this.getFlag(arg);
                 if (theFlag) {

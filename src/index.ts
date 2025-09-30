@@ -107,7 +107,7 @@ export class Fragrant extends EventEmitter {
                 neededflag = neededflag + "=";
             }
 
-            const arg = this.workingOn.find((thearg) => thearg.includes(neededflag));
+            const arg = this.workingOn.find((thearg) => thearg.startsWith(neededflag));
 
             if (arg){
                 let theFlag = this.getFlag(arg);
