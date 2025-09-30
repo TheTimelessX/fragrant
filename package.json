@@ -1,6 +1,6 @@
 {
   "name": "fragrant",
-  "version": "1.0.5",
+  "version": "2.4.5",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,4 +1,5 @@
 export type messageTypes = "call" | "middle" | "store";
+export type argumentKind = "literal" | "optional";
 
 export interface FragrantArguments {
     type: messageTypes;
@@ -19,6 +20,7 @@ export interface FragrantStroage {
     type: messageTypes;
     flag: string;
     id: string;
+    kind: argumentKind;
 }
 
 export interface ConstructorOptions {
