@@ -13,6 +13,8 @@ npm i fragrant
 
 + usage: string -> the main and basic usage of your project, it depends on sensitivity mode .
 
++ emitUndefineds: boolean -> if a value was undefined it would emit it (if emitUndefineds was true)
+
 + sensitivity: high | low -> if you set sensitivity on high, it will log the usage banner when no argument inputted, but low wont log anything .
 
 ## Listening Modes
@@ -22,6 +24,11 @@ npm i fragrant
 
 + store: it will emit "find" event when your argument called and carry an object (string or undefiend) . for example: --path=/usr/bin
 
+## Kinds for Flags
+
++ optional (default)
++ literal -> if flag didnt call and its kind was literal, the help of flag will log, default message log is `invalid syntax detected while using program`
+
 ## Usage
 ```javascript
 
@@ -30,10 +37,14 @@ const { Fragrant } = require("fragrant");
 let fragrant = new Fragrant({ sensitivity: "high", usage: "USAGE: -h / --help\n\n..." });
 
 // add a fragrant
-fragrant.add("call", "-h", "--help");
+
+let readfileHelp = "-r / --read : for reading a file";
+
+fragrant.add("call", [{ flag: "--help", kind: "optional" }, { flag: "-h", kind: "optional" }]);
+fragrant.add("middle", [ { flag: "--read", kind: "literal", help: readfileHelp }, { flag: "-r", kind: "literal", help: readfileHelp }]);
 
 // or seeing details
-let theHelpFlags = fragrant.add("call", "-h", "--help");
+let theHelpFlags = fragrant.add("call", [{ flag: "--help", kind: "optional" }, { flag: "-h", kind: "optional" }]);
 console.log(theHelpFlags);
 
 /*
