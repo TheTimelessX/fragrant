@@ -1,10 +1,11 @@
-export type messageTypes = "call" | "middle" | "store";
-export type kindTypes = "literal" | "optional";
+export type MessageTypes = "call" | "middle" | "store";
+export type FlagKind = "literal" | "optional";
 
 export interface FragrantArguments {
-    type: messageTypes;
+    type: MessageTypes;
     value: string | boolean | undefined;
     id: string;
+    flag: string;
 }
 
 export interface FragrantErr {
@@ -13,21 +14,23 @@ export interface FragrantErr {
 
 export interface FragrantEvents {
     find: (fragrantArgumentsCallback: FragrantArguments) => void;
-    err:  (fragrantErrMessage: FragrantErr) => void;
+    err: (fragrantErrMessage: FragrantErr) => void;
 }
 
-export interface FragrantStroage {
-    type: messageTypes;
-    kind: kindTypes;
+export interface FragrantStorage {
+    type: MessageTypes;
     flag: string;
+    kind: FlagKind;
     id: string;
+    help?: string;
 }
 
 export interface ConstructorOptions {
     workingOn?: string[];
-    sensitivity?: "high" | "low"; // high: will return usage banner if no argument inputted
+    sensitivity?: "high" | "low"; // high = auto exit with usage if missing
     usage?: string;
+    emitUndefinedValues?: boolean; // true by default
 }
 
-export class InvalidFlagType extends Error {};
-export class EmptyFlag extends Error {};
+export class InvalidFlagType extends Error {}
+export class EmptyFlag extends Error {}

@@ -2,25 +2,24 @@ import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
 import {
     ConstructorOptions, FragrantEvents,
-    FragrantStroage, FragrantArguments,
-    InvalidFlagType, EmptyFlag, messageTypes, kindTypes } from "./options.js";
+    FragrantStorage, FragrantArguments,
+    InvalidFlagType, EmptyFlag, MessageTypes, FlagKind
+} from "./options.js";
 
 export class Fragrant extends EventEmitter {
     private workingOn: string[];
-    private stroage: FragrantStroage[];
+    private storage: FragrantStorage[];
     private usage: string;
     private sensitivity: "high" | "low";
+    private emitUndefineds: boolean;
 
-    constructor(opts: ConstructorOptions = { workingOn: process.argv }){
+    constructor(opts: ConstructorOptions = { }) {
         super();
-        this.workingOn = opts.workingOn ?? process.argv;
-        if (this.workingOn == process.argv){
-            this.workingOn.splice(0, 1);
-            this.workingOn.splice(1, 1);
-        }
-        this.stroage = [];
+        this.workingOn = opts.workingOn ?? process.argv.slice(2);
+        this.storage = [];
         this.usage = opts.usage ?? "";
         this.sensitivity = opts.sensitivity ?? "low";
+        this.emitUndefineds = opts.emitUndefinedValues ?? true;
     }
 
     on<K extends keyof FragrantEvents>(event: K, listener: FragrantEvents[K]): this {
@@ -36,119 +35,114 @@ export class Fragrant extends EventEmitter {
     }
 
     add(
-        type: messageTypes,
-        flags: { flag: string, kind?: kindTypes }[]
-    ): FragrantStroage[] {
-
-        let appended: FragrantStroage[] = [];
-
-        if (flags.length == 0){
+        type: MessageTypes,
+        flags: { flag: string, kind?: FlagKind, help?: string }[]
+    ): FragrantStorage[] {
+        let appendeds: FragrantStorage[] = [];
+        if (flags.length == 0) {
             throw new EmptyFlag("flags list cannot be empty");
         }
 
         for (let flag of flags){
-            if (!["call", "middle", "store"].includes(type)){
+            if (!["call", "middle", "store"].includes(type)) {
                 throw new InvalidFlagType("Invalid flag type - call / middle / store");
             }
 
-            if (!flag.flag || flag.flag.length == 0){
+            if (!flag) {
                 throw new EmptyFlag("flag cannot be empty");
             }
 
             let id = randomUUID();
 
-            this.stroage.push({
-                flag: flag.flag,
-                type,
+            appendeds.push({
                 id: id,
-                kind: flag.kind ?? "literal"
+                flag: flag.flag,
+                kind: flag.kind ?? "optional",
+                help: flag.help,
+                type
             });
 
-            appended.push({
-                flag: flag.flag,
-                type,
+            this.storage.push({
                 id: id,
-                kind: flag.kind ?? "literal"
+                flag: flag.flag,
+                kind: flag.kind ?? "optional",
+                help: flag.help,
+                type
             });
         }
 
-        return appended;
+        return appendeds;
     }
 
     remove(...flag_ids: string[]): boolean {
         let deleted = false;
-        for (let flag_id of flag_ids){
-            for (let i = this.stroage.length - 1; i >= 0; i--) {
-                if (this.stroage[i].id === flag_id) {
-                    this.stroage.splice(i, 1);
-                    deleted = true;
-                }
+        for (let flag_id of flag_ids) {
+            const i = this.storage.findIndex(f => f.id === flag_id);
+            if (i !== -1) {
+                this.storage.splice(i, 1);
+                deleted = true;
             }
         }
         return deleted;
     }
 
-    clear(): boolean {
-        this.stroage = [];
-        return true;
+    clear(): void {
+        this.storage = [];
     }
 
-    catchStorage(): FragrantStroage[] {
-        return this.stroage;
-    }
-
-    getFlag(flag: string){
-        return this.stroage.find(storage => storage.flag.startsWith(flag));
+    getLiteralFlags(){
+        return this.storage.filter(flag => flag.kind === "literal");
     }
 
     parse(): void {
         let detected = false;
-        for (let theStorage of this.stroage){
-            let neededflag = theStorage.flag;
-            if (theStorage.type == "store"){
-                neededflag = neededflag + "=";
-            }
 
-            const arg = this.workingOn.find((thearg) => thearg.startsWith(neededflag));
+        for (const st of this.storage) {
+            let neededflag = st.flag;
+            if (st.type === "store") neededflag += "=";
 
-            if (arg){
+            const arg = this.workingOn.find(a => a.startsWith(neededflag));
+
+            if (arg) {
                 detected = true;
-                if (theStorage.type == "call"){
-                    if (this.eventNames().includes("find")){
-                        this.emit("find", { type: theStorage.type, value: true, id: theStorage.id });
-                    }
-                } else if (theStorage.type == "store"){
-                    if (this.eventNames().includes("find")){
-                        if (arg.includes("=")){
-                            const message = arg.split("=")[1];
-                            this.emit("find", { type: theStorage.type, value: message, id: theStorage.id });
-                        } else {
-                            this.emit("find", { type: theStorage.type, value: undefined, id: theStorage.id });
-                        }
-                    }
-                } else if (theStorage.type == "middle"){
-                    if (this.eventNames().includes("find")){
-                        const message = this.workingOn[this.workingOn.indexOf(arg) + 1];
-                        this.emit("find", { type: theStorage.type, value: message, id: theStorage.id });
+
+                if (st.type === "call") {
+                    this.emit("find", { type: st.type, value: true, id: st.id, flag: st.flag });
+                }
+                else if (st.type === "store") {
+                    const value = arg.includes("=") ? arg.split("=")[1] : undefined;
+                    if (value == undefined && this.emitUndefineds){
+                        this.emit("find", { type: st.type, value, id: st.id, flag: st.flag });
+                    } else if (value == undefined && !this.emitUndefineds){
+                        return;
+                        // wont emit anything
+                    } else {
+                        this.emit("find", { type: st.type, value, id: st.id, flag: st.flag });
                     }
                 }
-            } else if (theStorage.kind == "optional") {
-                if (this.eventNames().includes("find")){
-                    this.emit("find", { type: theStorage.type, value: undefined, id: theStorage.id });
+                else if (st.type === "middle") {
+                    const idx = this.workingOn.indexOf(arg);
+                    const value = this.workingOn[idx + 1];
+                    if (value == undefined && this.emitUndefineds){
+                        this.emit("find", { type: st.type, value, id: st.id, flag: st.flag });
+                    } else if (value == undefined && !this.emitUndefineds){
+                        return;
+                        // wont emit anything
+                    } else {
+                        this.emit("find", { type: st.type, value, id: st.id, flag: st.flag });
+                    }
                 }
-            } else if (theStorage.kind == "literal") {
-                if (this.eventNames().includes("err")){
-                    this.emit("err", { message: "literal flag didnt find" });
+            } else if (st.kind == "literal") {
+                if (this.sensitivity == "high"){
+                    console.error(st.help ?? "invalid syntax detected while using program");
+                    process.exit(0);
                 }
             }
         }
-        
-        if (detected == false){
-            if (this.sensitivity == "high"){
-                console.log(this.usage);
-                process.exit(0);
-            }
+
+        if (!detected && this.sensitivity === "high") {
+            console.log(this.usage);
+            process.exit(0);
         }
     }
-
 }

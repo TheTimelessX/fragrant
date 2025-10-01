@@ -1,21 +1,22 @@
 import { EventEmitter } from "events";
-import { ConstructorOptions, FragrantEvents, FragrantStroage, messageTypes, kindTypes } from "./options.js";
+import { ConstructorOptions, FragrantEvents, FragrantStorage, MessageTypes, FlagKind } from "./options.js";
 export declare class Fragrant extends EventEmitter {
     private workingOn;
-    private stroage;
+    private storage;
     private usage;
     private sensitivity;
+    private emitUndefineds;
     constructor(opts?: ConstructorOptions);
     on<K extends keyof FragrantEvents>(event: K, listener: FragrantEvents[K]): this;
     emit<K extends keyof FragrantEvents>(event: K, ...args: Parameters<FragrantEvents[K]>): boolean;
     getCurrentWorking(): string[];
-    add(type: messageTypes, flags: {
+    add(type: MessageTypes, flags: {
         flag: string;
-        kind?: kindTypes;
-    }[]): FragrantStroage[];
+        kind?: FlagKind;
+        help?: string;
+    }[]): FragrantStorage[];
     remove(...flag_ids: string[]): boolean;
-    clear(): boolean;
-    catchStorage(): FragrantStroage[];
-    getFlag(flag: string): FragrantStroage | undefined;
+    clear(): void;
+    getLiteralFlags(): FragrantStorage[];
     parse(): void;
 }

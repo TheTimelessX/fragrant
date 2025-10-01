@@ -2,17 +2,14 @@ import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
 import { InvalidFlagType, EmptyFlag } from "./options.js";
 export class Fragrant extends EventEmitter {
-    constructor(opts = { workingOn: process.argv }) {
-        var _a, _b, _c;
+    constructor(opts = {}) {
+        var _a, _b, _c, _d;
         super();
-        this.workingOn = (_a = opts.workingOn) !== null && _a !== void 0 ? _a : process.argv;
-        if (this.workingOn == process.argv) {
-            this.workingOn.splice(0, 1);
-            this.workingOn.splice(1, 1);
-        }
-        this.stroage = [];
+        this.workingOn = (_a = opts.workingOn) !== null && _a !== void 0 ? _a : process.argv.slice(2);
+        this.storage = [];
         this.usage = (_b = opts.usage) !== null && _b !== void 0 ? _b : "";
         this.sensitivity = (_c = opts.sensitivity) !== null && _c !== void 0 ? _c : "low";
+        this.emitUndefineds = (_d = opts.emitUndefinedValues) !== null && _d !== void 0 ? _d : true;
     }
     on(event, listener) {
         return super.on(event, listener);
@@ -25,7 +22,7 @@ export class Fragrant extends EventEmitter {
     }
     add(type, flags) {
         var _a, _b;
-        let appended = [];
+        let appendeds = [];
         if (flags.length == 0) {
             throw new EmptyFlag("flags list cannot be empty");
         }
@@ -33,96 +30,95 @@ export class Fragrant extends EventEmitter {
             if (!["call", "middle", "store"].includes(type)) {
                 throw new InvalidFlagType("Invalid flag type - call / middle / store");
             }
-            if (!flag.flag || flag.flag.length == 0) {
+            if (!flag) {
                 throw new EmptyFlag("flag cannot be empty");
             }
             let id = randomUUID();
-            this.stroage.push({
-                flag: flag.flag,
-                type,
+            appendeds.push({
                 id: id,
-                kind: (_a = flag.kind) !== null && _a !== void 0 ? _a : "literal"
+                flag: flag.flag,
+                kind: (_a = flag.kind) !== null && _a !== void 0 ? _a : "optional",
+                help: flag.help,
+                type
             });
-            appended.push({
-                flag: flag.flag,
-                type,
+            this.storage.push({
                 id: id,
-                kind: (_b = flag.kind) !== null && _b !== void 0 ? _b : "literal"
+                flag: flag.flag,
+                kind: (_b = flag.kind) !== null && _b !== void 0 ? _b : "optional",
+                help: flag.help,
+                type
             });
         }
-        return appended;
+        return appendeds;
     }
     remove(...flag_ids) {
         let deleted = false;
         for (let flag_id of flag_ids) {
-            for (let i = this.stroage.length - 1; i >= 0; i--) {
-                if (this.stroage[i].id === flag_id) {
-                    this.stroage.splice(i, 1);
-                    deleted = true;
-                }
+            const i = this.storage.findIndex(f => f.id === flag_id);
+            if (i !== -1) {
+                this.storage.splice(i, 1);
+                deleted = true;
             }
         }
         return deleted;
     }
     clear() {
-        this.stroage = [];
-        return true;
+        this.storage = [];
     }
-    catchStorage() {
-        return this.stroage;
-    }
-    getFlag(flag) {
-        return this.stroage.find(storage => storage.flag.startsWith(flag));
+    getLiteralFlags() {
+        return this.storage.filter(flag => flag.kind === "literal");
     }
     parse() {
+        var _a;
         let detected = false;
-        for (let theStorage of this.stroage) {
-            let neededflag = theStorage.flag;
-            if (theStorage.type == "store") {
-                neededflag = neededflag + "=";
-            }
-            const arg = this.workingOn.find((thearg) => thearg.startsWith(neededflag));
+        for (const st of this.storage) {
+            let neededflag = st.flag;
+            if (st.type === "store")
+                neededflag += "=";
+            const arg = this.workingOn.find(a => a.startsWith(neededflag));
             if (arg) {
                 detected = true;
-                if (theStorage.type == "call") {
-                    if (this.eventNames().includes("find")) {
-                        this.emit("find", { type: theStorage.type, value: true, id: theStorage.id });
+                if (st.type === "call") {
+                    this.emit("find", { type: st.type, value: true, id: st.id, flag: st.flag });
+                }
+                else if (st.type === "store") {
+                    const value = arg.includes("=") ? arg.split("=")[1] : undefined;
+                    if (value == undefined && this.emitUndefineds) {
+                        this.emit("find", { type: st.type, value, id: st.id, flag: st.flag });
+                    }
+                    else if (value == undefined && !this.emitUndefineds) {
+                        return;
+                        // wont emit anything
+                    }
+                    else {
+                        this.emit("find", { type: st.type, value, id: st.id, flag: st.flag });
                     }
                 }
-                else if (theStorage.type == "store") {
-                    if (this.eventNames().includes("find")) {
-                        if (arg.includes("=")) {
-                            const message = arg.split("=")[1];
-                            this.emit("find", { type: theStorage.type, value: message, id: theStorage.id });
-                        }
-                        else {
-                            this.emit("find", { type: theStorage.type, value: undefined, id: theStorage.id });
-                        }
+                else if (st.type === "middle") {
+                    const idx = this.workingOn.indexOf(arg);
+                    const value = this.workingOn[idx + 1];
+                    if (value == undefined && this.emitUndefineds) {
+                        this.emit("find", { type: st.type, value, id: st.id, flag: st.flag });
                     }
-                }
-                else if (theStorage.type == "middle") {
-                    if (this.eventNames().includes("find")) {
-                        const message = this.workingOn[this.workingOn.indexOf(arg) + 1];
-                        this.emit("find", { type: theStorage.type, value: message, id: theStorage.id });
+                    else if (value == undefined && !this.emitUndefineds) {
+                        return;
+                        // wont emit anything
+                    }
+                    else {
+                        this.emit("find", { type: st.type, value, id: st.id, flag: st.flag });
                     }
                 }
             }
-            else if (theStorage.kind == "optional") {
-                if (this.eventNames().includes("find")) {
-                    this.emit("find", { type: theStorage.type, value: undefined, id: theStorage.id });
-                }
-            }
-            else if (theStorage.kind == "literal") {
-                if (this.eventNames().includes("err")) {
-                    this.emit("err", { message: "literal flag didnt find" });
+            else if (st.kind == "literal") {
+                if (this.sensitivity == "high") {
+                    console.error((_a = st.help) !== null && _a !== void 0 ? _a : "invalid syntax detected while using program");
+                    process.exit(0);
                 }
             }
         }
-        if (detected == false) {
-            if (this.sensitivity == "high") {
-                console.log(this.usage);
-                process.exit(0);
-            }
+        if (!detected && this.sensitivity === "high") {
+            console.log(this.usage);
+            process.exit(0);
         }
     }
 }
